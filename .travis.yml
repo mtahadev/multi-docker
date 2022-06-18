@@ -1,0 +1,38 @@
+language: generic
+sudo: required
+services:
+  - docker
+
+before_install:
+  - docker build -t 8723150/complex -f ./client/Dockerfile.dev .
+
+script:
+  - docker run -e CI=true 8723150/complex npm run test -- --coverage
+
+after_success:
+  - docker build -t 8723150/multi-client -f ./client
+  - docker build -t 8723150/multi-nginx -f ./nginx
+  - docker build -t 8723150/multi-server -f ./server
+  - docker build -t 8723150/multi-worker -f ./worker
+
+  # LOGIN TO DOCKER CLI
+  - echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_ID" --password-stdin
+
+  # TAKE THOSE IMAGES AND PUSH THEM TO DOCKER HUB
+  - docker push -t 8723150/multi-client 
+  - docker push -t 8723150/multi-nginx
+  - docker push -t 8723150/multi-server
+  - docker push -t 8723150/multi-worker
+
+
+# deploy:
+#   provider: elasticbeanstalk 
+#   region: "us-west-2"
+#   app: "docker-react"
+#   env: "Dockerreact-env"
+#   bucket_name: "elasticbeanstalk-us-west-2-919358087815"
+#   bucket_path: "docker-react"
+#   on:
+#     branch: master
+#   access_key_id: $AWS_ACCESS_KEY
+#   secret_access_key: "$AWS_SECRET_KEY"
